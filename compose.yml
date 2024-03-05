@@ -5,8 +5,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    ports:
-      - "4444:4444"
+    networks:
+      ejercicios_servicios:
+        ipv4_address: 10.10.10.10
 
   client:
     build:
@@ -14,7 +15,13 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - server
+    networks:
+      ejercicios_servicios:
+        ipv4_address: 10.10.10.20
 
 networks:
-  prueba:
-    name: prueba
+  ejercicios_servicios:
+    name: ejercicios_servicios
+    ipam:  
+      config:
+        - subnet: "10.10.10.0/24"
