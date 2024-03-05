@@ -22,7 +22,7 @@ class Service:
             # asociación del socket al puerto
             service_socket.bind(service_address)
             service_socket.listen()
-            logger.info(" Esperando a la conexión...")
+            logger.info("Esperando a la conexión...")
             while True:
                 self.process_connections(service_socket)
 
