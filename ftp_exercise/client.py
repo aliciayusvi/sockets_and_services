@@ -16,7 +16,7 @@ class Client:
 
     def connect(self) -> None:
         service_address = (self.host, self.port)
-        logger.info(f"Conectando a {self.host}:{self.port}")
+        logger.info(f"Conecction to {self.host}:{self.port}")
         self.socket.connect(service_address)
 
     def send(self, data: bytes) -> bytes:
@@ -26,7 +26,7 @@ class Client:
         return self.socket.recv(buffer_size)
 
     def close(self) -> None:
-        logger.info("Cerrando conexión")
+        logger.info("Closing connection...")
         self.socket.close()
 
     def __enter__(self) -> Self:
@@ -37,7 +37,6 @@ class Client:
         self.close()
 
 
-
 class ClientTest(Client):
     def get_time(self):
         self.socket.sendall(b"message")
@@ -46,13 +45,13 @@ class ClientTest(Client):
 def main():
     logging.basicConfig(level=logging.INFO)
 
-    parser = argparse.ArgumentParser(description="Cliente de Alicia")
+    parser = argparse.ArgumentParser(description="Alicia's Client")
     parser.add_argument("--address", "-a", default="0.0.0.0")
     parser.add_argument("--port", "-p", default=4444, type=int)
     args = parser.parse_args()
 
     with ClientTest(host=args.address, port=args.port) as client:
-        while (message := input("mensaje (vacío para salir)? ")):
+        while (message := input("message (empty to leave)? ")):
             client.send(message.encode())
 
 
