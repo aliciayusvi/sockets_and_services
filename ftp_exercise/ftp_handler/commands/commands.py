@@ -1,13 +1,23 @@
 import grp
+import logging
 import os
 import pwd
+import socket
 import time
 from pathlib import Path
 
 from .base import FTPCommand, FTPDisconnect
 
+logger = logging.getLogger("FTP_COMMANDS")
 
-class FTPCommandQUIT(FTPCommand):
+
+FEATURES = ["UTF8", "EPSV"]
+
+class NoAvailablePorts(Exception):
+    pass
+
+
+class QUIT(FTPCommand):
     COMMAND = "QUIT"
 
     def execute(self, _: str) -> None:
@@ -15,7 +25,7 @@ class FTPCommandQUIT(FTPCommand):
         raise FTPDisconnect()
 
 
-class FTPCommandPWD(FTPCommand):
+class PWD(FTPCommand):
     COMMAND = "PWD"
     def execute(self, _: str) -> None:
         current_dir = os.getcwd()
@@ -23,7 +33,7 @@ class FTPCommandPWD(FTPCommand):
 
 
 # string del directorio como parámetro
-class FTPCommandCWD(FTPCommand):
+class CWD(FTPCommand):
     COMMAND = "CWD"
     def execute(self, command: str) -> None:
         new_dir = self.extract_arguments(command)
@@ -39,34 +49,36 @@ class FTPCommandCWD(FTPCommand):
         self.send_response(250, f"Directory changed to {new_dir}")
 
 
-class FTPCommandUSER(FTPCommand):
+class USER(FTPCommand):
     COMMAND = "USER"
     def execute(self, command: str) -> None:
         user = self.extract_arguments(command)
         self.send_response(331, f"User {user} OK. Password required")
 
 
-class FTPCommandPASS(FTPCommand):
+class PASS(FTPCommand):
     COMMAND = "PASS"
     def execute(self, command: str) -> None:
         password = self.extract_arguments(command)
         self.send_response(230, f"Password correct")
 
 
-class FTPCommandSYST(FTPCommand):
+class SYST(FTPCommand):
     COMMAND = "SYST"
     def execute(self, _: str) -> None:
         self.send_response(215, "UNIX Type: L8")
 
 
-class FTPCommandFEAT(FTPCommand):
+class FEAT(FTPCommand):
     COMMAND = "FEAT"
     def execute(self, _: str) -> None:
-        self.connection.sendall("211-Features:\r\n UTF8\r\n".encode())
+        message_list = ["211-Features"] + [f" {feature}" for feature in FEATURES] + [""]
+        message ="\r\n".join(message_list)
+        self.connection.sendall(message.encode())
         self.send_response(211, "End")
 
 
-class FTPCommandLIST(FTPCommand):
+class LIST(FTPCommand):
     COMMAND = "LIST"
     def format_file(self, filename):
         file_stats = os.stat(filename)
@@ -96,19 +108,59 @@ class FTPCommandLIST(FTPCommand):
         self.send_response(226, "List transfer done")
 
 
+class EPSV(FTPCommand):
+    COMMAND="EPSV"
+    # returns a socket if exist
+    def get_free_socket(self) -> socket.socket:
+        # iterate over a range of port numbers starting from 1024
+        for port in range(1024, 65536):
+            try:
+                # create a socket
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                # attempt to bind the socket to the current port
+                s.bind(("0.0.0.0", port))
+                s.listen()
+                # if successful, return the socket
+                return s
+            except OSError as e:
+                # if the port is already in use, close the socket and continue iterating
+                s.close()
+        raise NoAvailablePorts
+
+    def update_data_connection(self) -> int:
+        if self.handler.data_connection is not None:
+            self.handler.data_connection.close()
+        
+        data_socket = self.get_free_socket()
+        self.handler.data_connection = data_socket
+        # sockname is a tuple that looks like: ('0.0.0.0', 1234)
+        socket_port = data_socket.getsockname()[1]
+        return socket_port
+
+    def execute(self, _: str) -> None:
+        try:
+            port = self.update_data_connection()
+            self.send_response(229, f"Entering Extended Passive Mode (|||{port}|).")
+        except NoAvailablePorts:
+            logger.error("No available ports")
+            self.send_response(421, "Service not available, closing control connection.")
+
+
 FTP_IMPLEMENTED_COMMANDS = [
-    FTPCommandCWD,
-    FTPCommandPWD,
-    FTPCommandLIST,
-    FTPCommandQUIT,
-    FTPCommandUSER,
-    FTPCommandPASS,
-    FTPCommandSYST,
-    FTPCommandFEAT,
+    CWD,
+    PWD,
+    LIST,
+    QUIT,
+    USER,
+    PASS,
+    SYST,
+    FEAT,
+    EPSV,
 ]
 
+
 FTP_NOT_IMPLEMENTED_COMMANDS = [
-    "EPSV",
     "EPRT",
     "PASV",
+    "PORT",
 ]

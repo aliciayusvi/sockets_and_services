@@ -12,7 +12,7 @@ class FTPService(MultiThreadedService):
 
     def _process_connection(self, connection: socket.socket, client_address: str):
         logger.info(f"Connection from {client_address}")
-        ftp_handler = FTPHandler(connection)
+        ftp_handler = FTPHandler(connection, self.address)
         ftp_handler.execute()
 
 

@@ -1,4 +1,10 @@
 import socket
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from ..ftp_handler import FTPHandler
+else:
+    FTPHandler = Any
 
 class FTPDisconnect(Exception):
     pass
@@ -6,8 +12,9 @@ class FTPDisconnect(Exception):
 
 class FTPCommand:
     COMMAND: str = "UNKNOWN"
-    def __init__(self, connection: socket.socket) -> None:
-        self.connection = connection
+    def __init__(self, handler: FTPHandler) -> None:
+        self.connection = handler.connection
+        self.handler = handler
 
     def send_response(self, code: int, response: str) -> None:
         # formateo
