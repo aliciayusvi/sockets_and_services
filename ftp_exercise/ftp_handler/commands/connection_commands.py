@@ -11,7 +11,6 @@ class NoAvailablePorts(Exception):
 
 # gestión del socket de la conexión de datos
 class OpenDataConnection(FTPCommand):
-    COMMAND="OVERRIDE THIS COMMAND"
     # devuelve un socket si existe
     def get_free_socket(self) -> socket.socket:
         # iteración en un rango de puertos empezando por el 2024
@@ -20,6 +19,7 @@ class OpenDataConnection(FTPCommand):
                 # creación de un socket
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 # asignación de socket al puerto
+                #s.bind((self.handler.local_address, port))
                 s.bind(("0.0.0.0", port))
                 s.listen()
                 return s
@@ -52,10 +52,10 @@ class EPSV(OpenDataConnection):
 
 
 # comando para la conexión pasiva
-class PASV(OpenDataConnection):
-    COMMAND = "PASV"
+class PASV(OpenDataConnection):    
 
-    def execute(self, command: str) -> None:
+    # gestión de la creación del socket en data_conecction (bind)
+    def execute(self, _: str) -> None:
         try:
             port = self.update_data_connection()
         except NoAvailablePorts:

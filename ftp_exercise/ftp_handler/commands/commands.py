@@ -12,12 +12,10 @@ from .connection_commands import PASV, EPSV
 logger = logging.getLogger("FTP_COMMANDS")
 
 
-FEATURES = ["UTF8", "EPSV"]
+FEATURES = ["UTF8", "EPSV", "PASV"]
 
 
 class QUIT(FTPCommand):
-    COMMAND = "QUIT"
-
     def execute(self, _: str) -> None:
         self.send_response(221, "Bye!")
         # lanzar una excepción
@@ -25,7 +23,6 @@ class QUIT(FTPCommand):
 
 
 class PWD(FTPCommand):
-    COMMAND = "PWD"
     def execute(self, _: str) -> None:
         current_dir = os.getcwd()
         self.send_response(257, f'"{current_dir}"')
@@ -33,7 +30,6 @@ class PWD(FTPCommand):
 
 # string del directorio como parámetro
 class CWD(FTPCommand):
-    COMMAND = "CWD"
     def execute(self, command: str) -> None:
         new_dir = self.extract_arguments(command)
         path = Path(new_dir)
@@ -49,27 +45,23 @@ class CWD(FTPCommand):
 
 
 class USER(FTPCommand):
-    COMMAND = "USER"
     def execute(self, command: str) -> None:
         user = self.extract_arguments(command)
         self.send_response(331, f"User {user} OK. Password required")
 
 
 class PASS(FTPCommand):
-    COMMAND = "PASS"
     def execute(self, command: str) -> None:
         password = self.extract_arguments(command)
         self.send_response(230, f"Password correct")
 
 
 class SYST(FTPCommand):
-    COMMAND = "SYST"
     def execute(self, _: str) -> None:
         self.send_response(215, "UNIX Type: L8")
 
 
 class FEAT(FTPCommand):
-    COMMAND = "FEAT"
     def execute(self, _: str) -> None:
         message_list = ["211-Features"] + [f" {feature}" for feature in FEATURES] + [""]
         message ="\r\n".join(message_list)
@@ -78,7 +70,6 @@ class FEAT(FTPCommand):
 
 
 class LIST(FTPCommand):
-    COMMAND = "LIST"
     def format_file(self, filename):
         file_stats = os.stat(filename)
         fullmode = "rwxrwxrwx"
@@ -106,16 +97,16 @@ class LIST(FTPCommand):
         self.send_response(150, "List transfer started")
         send_socket, address = self.handler.data_connection.accept()
         with send_socket:
-            logger.info(f"EPSV connection from {address}")
+            logger.info(f"Passive connection from {address}")
             for filename in files:
                 formatted_file = self.format_file(filename)
                 send_socket.sendall(formatted_file.encode())
+        self.handler.data_connection = None
         self.send_response(226, "List transfer done")
 
 
+# get (para bajar archivos) es retrieve
 class RETR(FTPCommand):
-    COMMAND = "RETR"
-
     def execute(self, command: str) -> None:
         if self.handler.data_connection is None:
             self.send_response(425, "Use EPSV first.")
@@ -129,15 +120,14 @@ class RETR(FTPCommand):
         self.send_response(150, f"Opening BINARY mode data connection for {filename}")
         send_socket, address = self.handler.data_connection.accept()
         with send_socket, open(filename, "rb") as file:
-            logger.info(f"EPSV connection from {address}")
+            logger.info(f"Passive connection from {address}")
             send_socket.sendfile(file)
 
+        self.handler.data_connection = None
         self.send_response(226, f"Transfer complete for {filename}")
 
 
 class TYPE(FTPCommand):
-    COMMAND = "TYPE"
-
     def execute(self, command: str) -> None:
         type_ = self.extract_arguments(command)
         if type_ == "I":
@@ -146,8 +136,33 @@ class TYPE(FTPCommand):
             self.send_response(504, "Type not implemented")
 
 
+# put (para subir archivos) es stor
+class STOR(FTPCommand):
+    def execute(self, command: str) -> None:
+        # nos aseguramos de que hay un socket escuchando
+        if self.handler.data_connection is None:
+            self.send_response(425, "Use EPSV first.")
+            return
+    
+        # nombre y ruta de destino
+        filename = self.extract_arguments(command)
+        filepath = Path(filename)
+        if not filepath.parent.exists():
+            self.send_response(550, f"Directory {filepath.parent} not found")
+            return
 
-# get es retrieve
+        self.send_response(150, f"Opening BINARY mode data connection for {filename}")
+        recv_socket, address = self.handler.data_connection.accept()
+        with recv_socket, open(filename, "wb") as file:
+            logger.info(f"passive connection from {address}")
+            while (data := recv_socket.recv(1024)):
+                file.write(data)
+            logger.info("File received")
+            
+        self.handler.data_connection = None
+        self.send_response(226, f"Transfer complete for {filename}")
+
+
 FTP_IMPLEMENTED_COMMANDS = [
     CWD,
     PWD,
@@ -161,6 +176,7 @@ FTP_IMPLEMENTED_COMMANDS = [
     PASV,
     RETR,
     TYPE,
+    STOR
 ]
 
 

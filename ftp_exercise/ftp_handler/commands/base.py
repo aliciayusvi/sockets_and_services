@@ -11,7 +11,6 @@ class FTPDisconnect(Exception):
 
 
 class FTPCommand:
-    COMMAND: str = "__BASE_COMMAND__"
     def __init__(self, handler: FTPHandler) -> None:
         self.connection = handler.connection
         self.handler = handler
@@ -22,7 +21,7 @@ class FTPCommand:
         self.connection.sendall(full_response.encode())
 
     def extract_arguments(self, command: str) -> str:
-        keyword_len = len(self.COMMAND)
+        keyword_len = len(self.__class__.__name__)
         command_args = command[keyword_len:].strip()
         return command_args
 
@@ -32,12 +31,10 @@ class FTPCommand:
 
 # excepción de los comandos no reconocidos
 class FTPCommandUnknown(FTPCommand):
-    COMMAND = "UNKNOWN"
     def execute(self, command: str) -> None:
         self.send_response(500, f"Command {command} not recognized")
 
 # excepción de los comandos no implementados
 class FTPCommandUnsupported(FTPCommand):
-    COMMAND = "UNSUPPORTED"
     def execute(self, command: str) -> None:
         self.send_response(500, f"Command {command} not supported")

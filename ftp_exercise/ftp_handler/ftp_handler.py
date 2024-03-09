@@ -19,6 +19,7 @@ class FTPHandler:
         self.connection = connection
         self.data_connection: socket.socket | None = None
         # diccionario de comandos
+        self.local_address = local_address
         self.commands: dict[str, type[FTPCommand]] = {}
         self.register_commands(FTP_IMPLEMENTED_COMMANDS)
         for command in FTP_NOT_IMPLEMENTED_COMMANDS:
