@@ -100,22 +100,28 @@ class LIST(FTPCommand):
 
     def execute(self, _: str) -> None:
         # listado de archivos en el directorio actual
+        if self.handler.data_connection is None:
+            self.send_response(425, "Use EPSV first.")
+            return
         files = os.listdir()
         self.send_response(150, "List transfer started")
+        send_socket, address = self.handler.data_connection.accept()
+        logger.info(f"EPSV connection from {address}")
         for filename in files:
             formatted_file = self.format_file(filename)
-            self.connection.sendall(formatted_file.encode())
+            send_socket.sendall(formatted_file.encode())
+        send_socket.close()
         self.send_response(226, "List transfer done")
 
 
 class EPSV(FTPCommand):
     COMMAND="EPSV"
-    # returns a socket if exist
+    # devuelve un socket si existe
     def get_free_socket(self) -> socket.socket:
-        # iterate over a range of port numbers starting from 1024
+        # iteración en un rango de puertos empezando por el 2024
         for port in range(1024, 65536):
             try:
-                # create a socket
+                # creación de un socket
                 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
                 # attempt to bind the socket to the current port
                 s.bind(("0.0.0.0", port))

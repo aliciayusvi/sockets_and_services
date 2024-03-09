@@ -11,7 +11,7 @@ class FTPDisconnect(Exception):
 
 
 class FTPCommand:
-    COMMAND: str = "UNKNOWN"
+    COMMAND: str = "__BASE_COMMAND__"
     def __init__(self, handler: FTPHandler) -> None:
         self.connection = handler.connection
         self.handler = handler

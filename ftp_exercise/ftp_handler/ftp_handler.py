@@ -39,12 +39,8 @@ class FTPHandler:
                 command = self.get_command()
                 logger.info(f"Command received: {command}")
                 keyword = self.get_keyword(command)
-                #if not self.validate_keyword(keyword):
-                #    self.connection.sendall("500 Syntax error, command unrecognized\r\n".encode())
-                #    continue
-
                 # selección de un valor del diccionario de comandos
-                ftp_command_class = self.commands.get(keyword, FTPCommand)
+                ftp_command_class = self.commands.get(keyword, FTPCommandUnknown)
                 # instanciar el objeto de la clase asociada a la keyword
                 ftp_command = ftp_command_class(self)
                 # ejecutar el comando execute
