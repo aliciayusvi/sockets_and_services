@@ -1,4 +1,4 @@
-from .base import FTPCommand, FTPDisconnect, FTPCommandUnknown
+from .base import FTPCommand, FTPDisconnect, FTPCommandUnknown, FTPCommandUnsupported
 from .commands import (
     CWD,
     PWD,
@@ -8,6 +8,8 @@ from .commands import (
     PASS,
     SYST,
     FEAT,
+    EPSV,
+    PASV,
     FTP_IMPLEMENTED_COMMANDS,
     FTP_NOT_IMPLEMENTED_COMMANDS,
 )
@@ -17,6 +19,8 @@ __all__ = [
     # base
     "FTPCommand",
     "FTPDisconnect",
+    "FTPCommandUnknown",
+    "FTPCommandUnsupported",
     # commands
     "FTP_IMPLEMENTED_COMMANDS",
     "FTP_NOT_IMPLEMENTED_COMMANDS",
@@ -28,5 +32,7 @@ __all__ = [
     "PASS",
     "SYST",
     "FEAT",
+    "EPSV",
+    "PASV",
     "FTPCommandUnknown",
 ]

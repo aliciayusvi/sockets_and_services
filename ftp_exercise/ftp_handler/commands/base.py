@@ -17,7 +17,7 @@ class FTPCommand:
         self.handler = handler
 
     def send_response(self, code: int, response: str) -> None:
-        # formateo
+        # formateo del mensaje de salida
         full_response = f"{code} {response}\r\n"
         self.connection.sendall(full_response.encode())
 
@@ -30,7 +30,14 @@ class FTPCommand:
         self.send_response(200, f"Command {command} not implemented")
 
 
+# excepción de los comandos no reconocidos
 class FTPCommandUnknown(FTPCommand):
     COMMAND = "UNKNOWN"
     def execute(self, command: str) -> None:
         self.send_response(500, f"Command {command} not recognized")
+
+# excepción de los comandos no implementados
+class FTPCommandUnsupported(FTPCommand):
+    COMMAND = "UNSUPPORTED"
+    def execute(self, command: str) -> None:
+        self.send_response(500, f"Command {command} not supported")

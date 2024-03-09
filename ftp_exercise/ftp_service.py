@@ -2,14 +2,15 @@
 import argparse
 import logging
 import socket
-from .service import MultiThreadedService
+from .multi_threaded_service import MultiThreadedService
 from .ftp_handler import FTPHandler
 
 logger = logging.getLogger("FTPService")
 
-
+# ftp service extiende de multi threaded service
 class FTPService(MultiThreadedService):
 
+    # deriva la getión de la sesión ftp al handler
     def _process_connection(self, connection: socket.socket, client_address: str):
         logger.info(f"Connection from {client_address}")
         ftp_handler = FTPHandler(connection, self.address)

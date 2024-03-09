@@ -6,18 +6,19 @@ from .commands import (
     FTP_IMPLEMENTED_COMMANDS,
     FTP_NOT_IMPLEMENTED_COMMANDS,
     FTPCommandUnknown,
+    FTPCommandUnsupported,
     FTPDisconnect
 )
 
 logger = logging.getLogger("FTPHandler")
 
-
+# gestiona una lista de comandos
 class FTPHandler:
 
     def __init__(self, connection: socket.socket, local_address: str) -> None:
         self.connection = connection
-        connection.getsockopt
         self.data_connection: socket.socket | None = None
+        # diccionario de comandos
         self.commands: dict[str, type[FTPCommand]] = {}
         self.register_commands(FTP_IMPLEMENTED_COMMANDS)
         for command in FTP_NOT_IMPLEMENTED_COMMANDS:
@@ -28,8 +29,9 @@ class FTPHandler:
             self.commands[command.__name__] = command
     
     def register_unsupported_command(self, command: str) -> None:
-        self.commands[command] = FTPCommandUnknown
+        self.commands[command] = FTPCommandUnsupported
 
+    # petición y ejecución de comandos
     def execute(self) -> None:
         try:
             logger.info("Cliente conectado")
@@ -47,7 +49,6 @@ class FTPHandler:
                 ftp_command.execute(command)
         except FTPDisconnect:
             logger.info("Disconnected client")
-            pass
 
     def get_command(self) -> str:
         command = self.connection.recv(1024).decode()
@@ -63,9 +64,3 @@ class FTPHandler:
 
     def validate_keyword(self, keyword: str) -> bool:
         return keyword in self.commands
-
-
-
-# comandos a implementar
-#"get": FTPCommand,
-#"put": FTPCommand,

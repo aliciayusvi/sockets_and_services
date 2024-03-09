@@ -4,7 +4,7 @@ import logging
 
 logger = logging.getLogger("MultithreadedService")
 
-
+# creación de la conexión para los comandos
 class MultiThreadedService:
 
     # número de hilos predeterminados de 10
